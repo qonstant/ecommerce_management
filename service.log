@@ -1,0 +1,23 @@
+{"level":"info","timestamp":"2024-07-18T10:44:45.589+0500","caller":"app/app.go:56","msg":"http server started on http://localhost:0.0.0.0:8080/swagger/index.html"}
+{"level":"error","timestamp":"2024-07-18T10:44:45.589+0500","caller":"server/server.go:42","msg":"ERR_SERVE_HTTP","error":"listen tcp: address :0.0.0.0:8080: too many colons in address","stacktrace":"project-management-service/pkg/server.(*Server).Run.func1\n\t/Users/rakymzhan/Documents/projects/src/project-management-service/pkg/server/server.go:42"}
+{"level":"info","timestamp":"2024-07-18T10:45:18.573+0500","caller":"app/app.go:56","msg":"http server started on http://localhost:0.0.0.0:8080/swagger/index.html"}
+{"level":"error","timestamp":"2024-07-18T10:45:18.573+0500","caller":"server/server.go:42","msg":"ERR_SERVE_HTTP","error":"listen tcp: address :0.0.0.0:8080: too many colons in address","stacktrace":"project-management-service/pkg/server.(*Server).Run.func1\n\t/Users/rakymzhan/Documents/projects/src/project-management-service/pkg/server/server.go:42"}
+{"level":"info","timestamp":"2024-07-18T10:48:36.428+0500","caller":"app/app.go:56","msg":"http server started on http://localhost0.0.0.0:8080/swagger/index.html"}
+{"level":"error","timestamp":"2024-07-18T10:48:36.428+0500","caller":"server/server.go:42","msg":"ERR_SERVE_HTTP","error":"listen tcp: address :0.0.0.0:8080: too many colons in address","stacktrace":"project-management-service/pkg/server.(*Server).Run.func1\n\t/Users/rakymzhan/Documents/projects/src/project-management-service/pkg/server/server.go:42"}
+{"level":"info","timestamp":"2024-07-18T10:51:23.471+0500","caller":"app/app.go:56","msg":"http server started on http://localhost:8080/swagger/index.html"}
+{"level":"error","timestamp":"2024-07-18T10:51:23.471+0500","caller":"server/server.go:42","msg":"ERR_SERVE_HTTP","error":"listen tcp: address ::8080: too many colons in address","stacktrace":"project-management-service/pkg/server.(*Server).Run.func1\n\t/Users/rakymzhan/Documents/projects/src/project-management-service/pkg/server/server.go:42"}
+{"level":"info","timestamp":"2024-07-18T10:51:38.298+0500","caller":"app/app.go:56","msg":"http server started on http://localhost8080/swagger/index.html"}
+{"level":"info","timestamp":"2024-07-18T10:57:49.938+0500","caller":"app/app.go:56","msg":"http server started on http://localhost8080/swagger/index.html"}
+{"level":"info","timestamp":"2024-07-18T11:05:34.531+0500","caller":"app/app.go:56","msg":"http server started on http://localhost8080/swagger/index.html"}
+{"level":"info","timestamp":"2024-07-18T11:12:16.622+0500","caller":"app/app.go:56","msg":"http server started on http://localhost8080/swagger/index.html"}
+{"level":"info","timestamp":"2024-07-18T11:42:06.449+0500","caller":"app/app.go:56","msg":"http server started on http://localhost8080/swagger/index.html"}
+{"level":"info","timestamp":"2024-07-18T11:47:43.265+0500","caller":"app/app.go:56","msg":"http server started on http://localhost8080/swagger/index.html"}
+{"level":"info","timestamp":"2024-07-18T12:05:06.352+0500","caller":"app/app.go:56","msg":"http server started on http://localhost8080/swagger/index.html"}
+{"level":"info","timestamp":"2024-07-18T12:06:04.191+0500","caller":"app/app.go:56","msg":"http server started on http://localhost8080/swagger/index.html"}
+{"level":"info","timestamp":"2024-07-18T12:14:10.373+0500","caller":"app/app.go:56","msg":"http server started on http://localhost8080/swagger/index.html"}
+{"level":"info","timestamp":"2024-07-18T14:58:29.050+0500","caller":"app/app.go:56","msg":"http server started on http://localhost8080/swagger/index.html"}
+{"level":"info","timestamp":"2024-07-18T15:34:35.243+0500","caller":"app/app.go:56","msg":"http server started on http://localhost8080/swagger/index.html"}
+{"level":"info","timestamp":"2024-07-18T15:34:57.260+0500","caller":"app/app.go:56","msg":"http server started on http://localhost8080/swagger/index.html"}
+{"level":"info","timestamp":"2024-07-18T15:44:10.626+0500","caller":"app/app.go:56","msg":"http server started on http://localhost8080/swagger/index.html"}
+{"level":"info","timestamp":"2024-07-18T15:53:40.604+0500","caller":"app/app.go:56","msg":"http server started on http://localhost8080/swagger/index.html"}
+{"level":"info","timestamp":"2024-07-18T16:02:54.696+0500","caller":"app/app.go:56","msg":"http server started on http://localhost8080/swagger/index.html"}
