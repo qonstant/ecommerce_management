@@ -52,3 +52,8 @@ func InternalServerError(w http.ResponseWriter, r *http.Request, err error) {
 	}
 	render.JSON(w, r, v)
 }
+
+func NoContent(w http.ResponseWriter, r *http.Request) {
+	render.Status(r, http.StatusNoContent)
+	w.Write([]byte(""))
+}

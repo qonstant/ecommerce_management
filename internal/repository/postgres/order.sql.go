@@ -3,7 +3,7 @@
 //   sqlc v1.26.0
 // source: order.sql
 
-package db
+package postgres
 
 import (
 	"context"

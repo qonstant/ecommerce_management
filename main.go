@@ -1,9 +1,9 @@
 package main
 
-// import (
-// 	"ecommerce_management/internal/app"
-// )
+import (
+	"ecommerce_management/internal/app"
+)
 
-// func main() {
-// 	app.Run()
-// }
+func main() {
+	app.Run()
+}

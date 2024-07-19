@@ -1,0 +1,981 @@
+definitions:
+  postgres.CreateOrderParams:
+    properties:
+      status:
+        $ref: '#/definitions/postgres.OrderStatus'
+      total_amount:
+        type: string
+      user_id:
+        type: integer
+    type: object
+  postgres.CreatePaymentParams:
+    properties:
+      amount:
+        type: string
+      order_id:
+        type: integer
+      status:
+        $ref: '#/definitions/postgres.PaymentStatus'
+      user_id:
+        type: integer
+    type: object
+  postgres.CreateProductParams:
+    properties:
+      category:
+        type: string
+      description:
+        type: string
+      name:
+        type: string
+      price:
+        type: string
+      stock_quantity:
+        type: integer
+    type: object
+  postgres.CreateUserParams:
+    properties:
+      address:
+        type: string
+      email:
+        type: string
+      full_name:
+        type: string
+      role:
+        type: string
+    type: object
+  postgres.Order:
+    properties:
+      id:
+        type: integer
+      order_date:
+        type: string
+      status:
+        $ref: '#/definitions/postgres.OrderStatus'
+      total_amount:
+        type: string
+      user_id:
+        type: integer
+    type: object
+  postgres.OrderStatus:
+    enum:
+    - new
+    - processing
+    - completed
+    type: string
+    x-enum-varnames:
+    - OrderStatusNew
+    - OrderStatusProcessing
+    - OrderStatusCompleted
+  postgres.Payment:
+    properties:
+      amount:
+        type: string
+      id:
+        type: integer
+      order_id:
+        type: integer
+      payment_date:
+        type: string
+      status:
+        $ref: '#/definitions/postgres.PaymentStatus'
+      user_id:
+        type: integer
+    type: object
+  postgres.PaymentStatus:
+    enum:
+    - successful
+    - unsuccessful
+    type: string
+    x-enum-varnames:
+    - PaymentStatusSuccessful
+    - PaymentStatusUnsuccessful
+  postgres.Product:
+    properties:
+      addition_date:
+        type: string
+      category:
+        type: string
+      description:
+        type: string
+      id:
+        type: integer
+      name:
+        type: string
+      price:
+        type: string
+      stock_quantity:
+        type: integer
+    type: object
+  postgres.UpdateOrderParams:
+    properties:
+      id:
+        type: integer
+      status:
+        $ref: '#/definitions/postgres.OrderStatus'
+      total_amount:
+        type: string
+      user_id:
+        type: integer
+    type: object
+  postgres.UpdatePaymentParams:
+    properties:
+      amount:
+        type: string
+      id:
+        type: integer
+      order_id:
+        type: integer
+      status:
+        $ref: '#/definitions/postgres.PaymentStatus'
+      user_id:
+        type: integer
+    type: object
+  postgres.UpdateProductParams:
+    properties:
+      category:
+        type: string
+      description:
+        type: string
+      id:
+        type: integer
+      name:
+        type: string
+      price:
+        type: string
+      stock_quantity:
+        type: integer
+    type: object
+  postgres.UpdateUserParams:
+    properties:
+      address:
+        type: string
+      email:
+        type: string
+      full_name:
+        type: string
+      id:
+        type: integer
+      role:
+        type: string
+    type: object
+  postgres.User:
+    properties:
+      address:
+        type: string
+      email:
+        type: string
+      full_name:
+        type: string
+      id:
+        type: integer
+      registration_date:
+        type: string
+      role:
+        type: string
+    type: object
+  response.Object:
+    properties:
+      data: {}
+      message:
+        type: string
+      success:
+        type: boolean
+    type: object
+info:
+  contact: {}
+paths:
+  /orders:
+    get:
+      consumes:
+      - application/json
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/postgres.Order'
+            type: array
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/response.Object'
+      summary: List all orders
+      tags:
+      - orders
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: Order details
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/postgres.CreateOrderParams'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/postgres.Order'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/response.Object'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/response.Object'
+      summary: Create a new order
+      tags:
+      - orders
+  /orders/{id}:
+    delete:
+      consumes:
+      - application/json
+      parameters:
+      - description: Order ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "204":
+          description: No Content
+          schema:
+            $ref: '#/definitions/response.Object'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/response.Object'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/response.Object'
+      summary: Delete an order by ID
+      tags:
+      - orders
+    get:
+      consumes:
+      - application/json
+      parameters:
+      - description: Order ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/postgres.Order'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/response.Object'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/response.Object'
+      summary: Get an order by ID
+      tags:
+      - orders
+    put:
+      consumes:
+      - application/json
+      parameters:
+      - description: Order ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Order details
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/postgres.UpdateOrderParams'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/postgres.Order'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/response.Object'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/response.Object'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/response.Object'
+      summary: Update an order by ID
+      tags:
+      - orders
+  /orders/search/status:
+    get:
+      consumes:
+      - application/json
+      parameters:
+      - description: Order Status
+        in: query
+        name: status
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/postgres.Order'
+            type: array
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/response.Object'
+      summary: Search orders by status
+      tags:
+      - orders
+  /orders/search/user:
+    get:
+      consumes:
+      - application/json
+      parameters:
+      - description: User ID
+        in: query
+        name: user
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/postgres.Order'
+            type: array
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/response.Object'
+      summary: Search orders by user ID
+      tags:
+      - orders
+  /payments:
+    get:
+      consumes:
+      - application/json
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/postgres.Payment'
+            type: array
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/response.Object'
+      summary: List all payments
+      tags:
+      - payments
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: Payment details
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/postgres.CreatePaymentParams'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/postgres.Payment'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/response.Object'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/response.Object'
+      summary: Create a new payment
+      tags:
+      - payments
+  /payments/{id}:
+    delete:
+      consumes:
+      - application/json
+      parameters:
+      - description: Payment ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "204":
+          description: No Content
+          schema:
+            $ref: '#/definitions/response.Object'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/response.Object'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/response.Object'
+      summary: Delete a payment by ID
+      tags:
+      - payments
+    get:
+      consumes:
+      - application/json
+      parameters:
+      - description: Payment ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/postgres.Payment'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/response.Object'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/response.Object'
+      summary: Get a payment by ID
+      tags:
+      - payments
+    put:
+      consumes:
+      - application/json
+      parameters:
+      - description: Payment ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Payment details
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/postgres.UpdatePaymentParams'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/postgres.Payment'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/response.Object'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/response.Object'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/response.Object'
+      summary: Update a payment by ID
+      tags:
+      - payments
+  /payments/search/order:
+    get:
+      consumes:
+      - application/json
+      parameters:
+      - description: Order ID
+        in: query
+        name: order
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/postgres.Payment'
+            type: array
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/response.Object'
+      summary: Search payments by order ID
+      tags:
+      - payments
+  /payments/search/status:
+    get:
+      consumes:
+      - application/json
+      parameters:
+      - description: Payment status
+        in: query
+        name: status
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/postgres.Payment'
+            type: array
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/response.Object'
+      summary: Search payments by status
+      tags:
+      - payments
+  /payments/search/user:
+    get:
+      consumes:
+      - application/json
+      parameters:
+      - description: User ID
+        in: query
+        name: user
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/postgres.Payment'
+            type: array
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/response.Object'
+      summary: Search payments by user ID
+      tags:
+      - payments
+  /products:
+    get:
+      consumes:
+      - application/json
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/postgres.Product'
+            type: array
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/response.Object'
+      summary: List all products
+      tags:
+      - products
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: Product details
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/postgres.CreateProductParams'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/postgres.Product'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/response.Object'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/response.Object'
+      summary: Create a new product
+      tags:
+      - products
+  /products/{id}:
+    delete:
+      consumes:
+      - application/json
+      parameters:
+      - description: Product ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "204":
+          description: No Content
+          schema:
+            $ref: '#/definitions/response.Object'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/response.Object'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/response.Object'
+      summary: Delete a product by ID
+      tags:
+      - products
+    get:
+      consumes:
+      - application/json
+      parameters:
+      - description: Product ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/postgres.Product'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/response.Object'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/response.Object'
+      summary: Get a product by ID
+      tags:
+      - products
+    put:
+      consumes:
+      - application/json
+      parameters:
+      - description: Product ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Product details
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/postgres.UpdateProductParams'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/postgres.Product'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/response.Object'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/response.Object'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/response.Object'
+      summary: Update a product by ID
+      tags:
+      - products
+  /products/search/category:
+    get:
+      consumes:
+      - application/json
+      parameters:
+      - description: Product category
+        in: query
+        name: category
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/postgres.Product'
+            type: array
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/response.Object'
+      summary: Search products by category
+      tags:
+      - products
+  /products/search/name:
+    get:
+      consumes:
+      - application/json
+      parameters:
+      - description: Product name
+        in: query
+        name: name
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/postgres.Product'
+            type: array
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/response.Object'
+      summary: Search products by name
+      tags:
+      - products
+  /users:
+    get:
+      consumes:
+      - application/json
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/postgres.User'
+            type: array
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/response.Object'
+      summary: List of users from the repository
+      tags:
+      - users
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: User details
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/postgres.CreateUserParams'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/postgres.User'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/response.Object'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/response.Object'
+      summary: Add a new user to the repository
+      tags:
+      - users
+  /users/{id}:
+    delete:
+      consumes:
+      - application/json
+      parameters:
+      - description: User ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "204":
+          description: No Content
+          schema:
+            $ref: '#/definitions/response.Object'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/response.Object'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/response.Object'
+      summary: Delete a user from the repository
+      tags:
+      - users
+    get:
+      consumes:
+      - application/json
+      parameters:
+      - description: User ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/postgres.User'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/response.Object'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/response.Object'
+      summary: Get a user from the repository
+      tags:
+      - users
+    put:
+      consumes:
+      - application/json
+      parameters:
+      - description: User ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: User details
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/postgres.UpdateUserParams'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/postgres.User'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/response.Object'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/response.Object'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/response.Object'
+      summary: Update a user in the repository
+      tags:
+      - users
+  /users/search/email:
+    get:
+      consumes:
+      - application/json
+      parameters:
+      - description: User Email
+        in: query
+        name: email
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/postgres.User'
+            type: array
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/response.Object'
+      summary: Search users by email
+      tags:
+      - users
+  /users/search/name:
+    get:
+      consumes:
+      - application/json
+      parameters:
+      - description: User Name
+        in: query
+        name: name
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/postgres.User'
+            type: array
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/response.Object'
+      summary: Search users by name
+      tags:
+      - users
+swagger: "2.0"
