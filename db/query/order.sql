@@ -5,8 +5,8 @@ SELECT * FROM orders WHERE id = $1 LIMIT 1;
 SELECT * FROM orders ORDER BY order_date ASC;
 
 -- name: CreateOrder :one
-INSERT INTO orders (user_id, total_amount, order_date, status) 
-VALUES ($1, $2, NOW(), $3) 
+INSERT INTO orders (user_id, total_amount, order_date) 
+VALUES ($1, $2, NOW()) 
 RETURNING *;
 
 -- name: UpdateOrder :one

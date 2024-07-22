@@ -27,3 +27,9 @@ SELECT * FROM products WHERE name ILIKE '%' || $1 || '%' ORDER BY addition_date 
 
 -- name: SearchProductsByCategory :many
 SELECT * FROM products WHERE category = $1 ORDER BY addition_date ASC;
+
+-- name: UpdateProductStock :one
+UPDATE products
+SET stock_quantity = stock_quantity - $1
+WHERE id = $2
+RETURNING *;

@@ -4,21 +4,23 @@ import (
 	"database/sql"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"net/http"
 	"strconv"
 
 	"github.com/go-chi/chi/v5"
 	"ecommerce_management/internal/repository/postgres"
+	"ecommerce_management/internal/domain/order"
 	"ecommerce_management/pkg/server/response"
 )
 
 type OrdersHandler struct {
-	db *postgres.Queries
+	store *postgres.Store
 }
 
-func NewOrderHandler(conn *sql.DB) *OrdersHandler {
+func NewOrderHandler(db *sql.DB) *OrdersHandler {
 	return &OrdersHandler{
-		db: postgres.New(conn),
+		store: postgres.NewStore(db),
 	}
 }
 
@@ -47,7 +49,7 @@ func (h *OrdersHandler) Routes() chi.Router {
 // @Failure 500 {object} response.Object
 // @Router /orders [get]
 func (h *OrdersHandler) list(w http.ResponseWriter, r *http.Request) {
-	orders, err := h.db.ListOrders(r.Context())
+	orders, err := h.store.ListOrders(r.Context())
 	if err != nil {
 		response.InternalServerError(w, r, err)
 		return
@@ -59,26 +61,118 @@ func (h *OrdersHandler) list(w http.ResponseWriter, r *http.Request) {
 // @Tags orders
 // @Accept json
 // @Produce json
-// @Param request body postgres.CreateOrderParams true "Order details"
+// @Param request body order.CreateOrderRequest true "Order details"
 // @Success 200 {object} postgres.Order
 // @Failure 400 {object} response.Object
 // @Failure 500 {object} response.Object
 // @Router /orders [post]
 func (h *OrdersHandler) add(w http.ResponseWriter, r *http.Request) {
-	var req postgres.CreateOrderParams
+	var req order.CreateOrderRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		response.BadRequest(w, r, err, req)
 		return
 	}
 
-	order, err := h.db.CreateOrder(r.Context(), req)
+	fmt.Println("Request decoded successfully:", req)
+
+	tx, err := h.store.BeginTx(r.Context(), nil)
 	if err != nil {
+		response.InternalServerError(w, r, err)
+		return
+	}
+	defer tx.Rollback()
+
+	// Create the order first with a placeholder total amount ("0.00")
+	order, err := tx.CreateOrder(r.Context(), postgres.CreateOrderParams{
+		UserID:      req.UserID,
+		TotalAmount: "0.00", // Dummy value, will be updated later
+	})
+	if err != nil {
+		response.InternalServerError(w, r, err)
+		return
+	}
+
+	var totalAmount float64
+	for _, item := range req.Items {
+		// Fetch the product
+		product, err := tx.GetProduct(r.Context(), item.ProductID)
+		if err != nil {
+			response.InternalServerError(w, r, err)
+			return
+		}
+
+		fmt.Printf("Processing item: %+v\n", item)
+		fmt.Printf("Fetched product: %+v\n", product)
+
+		// Check stock quantity
+		if product.StockQuantity < item.Quantity {
+			response.BadRequest(w, r, fmt.Errorf("insufficient stock for product ID %d", item.ProductID), nil)
+			return
+		}
+
+		// Convert product.Price to float64
+		productPrice, err := strconv.ParseFloat(product.Price, 64)
+		if err != nil {
+			response.InternalServerError(w, r, fmt.Errorf("invalid product price format: %v", err))
+			return
+		}
+
+		// Calculate item price
+		itemPrice := productPrice * float64(item.Quantity)
+		totalAmount += itemPrice
+
+		fmt.Printf("Product price: %.2f\n", productPrice)
+		fmt.Printf("Item price: %.2f, Total amount so far: %.2f\n", itemPrice, totalAmount)
+
+		// Format itemPrice to string with 2 decimal places
+		itemPriceStr := fmt.Sprintf("%.2f", itemPrice)
+		fmt.Printf("Formatted item price: %s\n", itemPriceStr)
+
+		_, err = tx.CreateOrderItem(r.Context(), postgres.CreateOrderItemParams{
+			OrderID:   order.ID, // Use the ID of the newly created order
+			ProductID: item.ProductID,
+			Quantity:  item.Quantity,
+			Price:     itemPriceStr, // Use the formatted string
+		})
+		if err != nil {
+			response.InternalServerError(w, r, err)
+			return
+		}
+
+		_, err = tx.UpdateProductStock(r.Context(), postgres.UpdateProductStockParams{
+			StockQuantity: item.Quantity,
+			ID:            item.ProductID,
+		})
+		if err != nil {
+			response.InternalServerError(w, r, err)
+			return
+		}
+	}
+
+	// Format totalAmount to have at most 2 decimal places
+	totalAmountStr := fmt.Sprintf("%.2f", totalAmount)
+	fmt.Printf("Formatted total amount: %s\n", totalAmountStr)
+
+	// Update the order with the final totalAmount
+	_, err = tx.UpdateOrder(r.Context(), postgres.UpdateOrderParams{
+		ID:          order.ID, // Use the ID of the newly created order
+		UserID:      order.UserID,
+		TotalAmount: totalAmountStr, // Use the formatted string
+		Status:      order.Status,
+	})
+	if err != nil {
+		response.InternalServerError(w, r, err)
+		return
+	}
+
+	if err := tx.Commit(); err != nil {
 		response.InternalServerError(w, r, err)
 		return
 	}
 
 	response.OK(w, r, order)
 }
+
 
 // @Summary Get an order by ID
 // @Tags orders
@@ -96,7 +190,7 @@ func (h *OrdersHandler) get(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	order, err := h.db.GetOrder(r.Context(), id)
+	order, err := h.store.GetOrder(r.Context(), id)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			response.NotFound(w, r, err)
@@ -135,7 +229,7 @@ func (h *OrdersHandler) update(w http.ResponseWriter, r *http.Request) {
 
 	req.ID = id
 
-	order, err := h.db.UpdateOrder(r.Context(), req)
+	order, err := h.store.UpdateOrder(r.Context(), req)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			response.NotFound(w, r, err)
@@ -164,7 +258,7 @@ func (h *OrdersHandler) delete(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := h.db.DeleteOrder(r.Context(), id); err != nil {
+	if err := h.store.DeleteOrder(r.Context(), id); err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			response.NotFound(w, r, err)
 		} else {
@@ -185,18 +279,19 @@ func (h *OrdersHandler) delete(w http.ResponseWriter, r *http.Request) {
 // @Failure 500 {object} response.Object
 // @Router /orders/search/user [get]
 func (h *OrdersHandler) searchByUser(w http.ResponseWriter, r *http.Request) {
-	userIDStr := r.URL.Query().Get("user")
-	if userIDStr == "" {
-		response.BadRequest(w, r, errors.New("missing user parameter"), nil)
+	userID := r.URL.Query().Get("user")
+	if userID == "" {
+		response.BadRequest(w, r, errors.New("user ID is required"), nil)
 		return
 	}
-	userID, err := strconv.ParseInt(userIDStr, 10, 64)
+
+	id, err := strconv.ParseInt(userID, 10, 64)
 	if err != nil {
 		response.BadRequest(w, r, err, nil)
 		return
 	}
 
-	orders, err := h.db.SearchOrdersByUser(r.Context(), userID)
+	orders, err := h.store.SearchOrdersByUser(r.Context(), id)
 	if err != nil {
 		response.InternalServerError(w, r, err)
 		return
@@ -216,11 +311,11 @@ func (h *OrdersHandler) searchByUser(w http.ResponseWriter, r *http.Request) {
 func (h *OrdersHandler) searchByStatus(w http.ResponseWriter, r *http.Request) {
 	status := r.URL.Query().Get("status")
 	if status == "" {
-		response.BadRequest(w, r, errors.New("missing status parameter"), nil)
+		response.BadRequest(w, r, errors.New("status is required"), nil)
 		return
 	}
 
-	orders, err := h.db.SearchOrdersByStatus(r.Context(), postgres.OrderStatus(status))
+	orders, err := h.store.SearchOrdersByStatus(r.Context(), postgres.OrderStatus(status))
 	if err != nil {
 		response.InternalServerError(w, r, err)
 		return

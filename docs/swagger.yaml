@@ -1,11 +1,20 @@
 definitions:
-  postgres.CreateOrderParams:
+  order.CreateOrderRequest:
     properties:
-      status:
-        $ref: '#/definitions/postgres.OrderStatus'
-      total_amount:
-        type: string
+      items:
+        items:
+          $ref: '#/definitions/order.OrderItem'
+        type: array
       user_id:
+        type: integer
+    type: object
+  order.OrderItem:
+    properties:
+      product_id:
+        description: The ID of the product being ordered
+        type: integer
+      quantity:
+        description: The quantity of the product
         type: integer
     type: object
   postgres.CreatePaymentParams:
@@ -213,7 +222,7 @@ paths:
         name: request
         required: true
         schema:
-          $ref: '#/definitions/postgres.CreateOrderParams'
+          $ref: '#/definitions/order.CreateOrderRequest'
       produces:
       - application/json
       responses:

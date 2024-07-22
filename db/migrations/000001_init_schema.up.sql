@@ -22,7 +22,7 @@ CREATE TABLE "products" (
   "id" BIGSERIAL PRIMARY KEY,
   "name" varchar(255) NOT NULL,
   "description" text NOT NULL,
-  "price" numeric(10,2) NOT NULL,
+  "price" numeric(10, 2) NOT NULL,
   "category" varchar(255) NOT NULL,
   "stock_quantity" int NOT NULL,
   "addition_date" timestamp NOT NULL DEFAULT NOW()
@@ -31,9 +31,9 @@ CREATE TABLE "products" (
 CREATE TABLE "orders" (
   "id" BIGSERIAL PRIMARY KEY,
   "user_id" BIGINT NOT NULL,
-  "total_amount" numeric(10,2) NOT NULL,
+  "total_amount" numeric(10, 2) NOT NULL,
   "order_date" timestamp NOT NULL DEFAULT NOW(),
-  "status" order_status NOT NULL
+  "status" order_status NOT NULL DEFAULT 'new'
 );
 
 CREATE TABLE "order_items" (
@@ -41,14 +41,14 @@ CREATE TABLE "order_items" (
   "order_id" BIGINT NOT NULL,
   "product_id" BIGINT NOT NULL,
   "quantity" int NOT NULL,
-  "price" numeric(10,2) NOT NULL
+  "price" numeric(10, 2) NOT NULL
 );
 
 CREATE TABLE "payments" (
   "id" BIGSERIAL PRIMARY KEY,
   "user_id" BIGINT NOT NULL,
   "order_id" BIGINT NOT NULL,
-  "amount" numeric(10,2) NOT NULL,
+  "amount" numeric(10, 2) NOT NULL,
   "payment_date" timestamp NOT NULL DEFAULT NOW(),
   "status" payment_status NOT NULL
 );

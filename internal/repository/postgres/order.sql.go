@@ -10,19 +10,18 @@ import (
 )
 
 const createOrder = `-- name: CreateOrder :one
-INSERT INTO orders (user_id, total_amount, order_date, status) 
-VALUES ($1, $2, NOW(), $3) 
+INSERT INTO orders (user_id, total_amount, order_date) 
+VALUES ($1, $2, NOW()) 
 RETURNING id, user_id, total_amount, order_date, status
 `
 
 type CreateOrderParams struct {
-	UserID      int64       `json:"user_id"`
-	TotalAmount string      `json:"total_amount"`
-	Status      OrderStatus `json:"status"`
+	UserID      int64  `json:"user_id"`
+	TotalAmount string `json:"total_amount"`
 }
 
 func (q *Queries) CreateOrder(ctx context.Context, arg CreateOrderParams) (Order, error) {
-	row := q.db.QueryRowContext(ctx, createOrder, arg.UserID, arg.TotalAmount, arg.Status)
+	row := q.db.QueryRowContext(ctx, createOrder, arg.UserID, arg.TotalAmount)
 	var i Order
 	err := row.Scan(
 		&i.ID,

@@ -63,7 +63,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/postgres.CreateOrderParams"
+                            "$ref": "#/definitions/order.CreateOrderRequest"
                         }
                     }
                 ],
@@ -1233,16 +1233,29 @@ const docTemplate = `{
         }
     },
     "definitions": {
-        "postgres.CreateOrderParams": {
+        "order.CreateOrderRequest": {
             "type": "object",
             "properties": {
-                "status": {
-                    "$ref": "#/definitions/postgres.OrderStatus"
-                },
-                "total_amount": {
-                    "type": "string"
+                "items": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/order.OrderItem"
+                    }
                 },
                 "user_id": {
+                    "type": "integer"
+                }
+            }
+        },
+        "order.OrderItem": {
+            "type": "object",
+            "properties": {
+                "product_id": {
+                    "description": "The ID of the product being ordered",
+                    "type": "integer"
+                },
+                "quantity": {
+                    "description": "The quantity of the product",
                     "type": "integer"
                 }
             }

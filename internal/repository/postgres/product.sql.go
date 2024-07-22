@@ -219,3 +219,30 @@ func (q *Queries) UpdateProduct(ctx context.Context, arg UpdateProductParams) (P
 	)
 	return i, err
 }
+
+const updateProductStock = `-- name: UpdateProductStock :one
+UPDATE products
+SET stock_quantity = stock_quantity - $1
+WHERE id = $2
+RETURNING id, name, description, price, category, stock_quantity, addition_date
+`
+
+type UpdateProductStockParams struct {
+	StockQuantity int32 `json:"stock_quantity"`
+	ID            int64 `json:"id"`
+}
+
+func (q *Queries) UpdateProductStock(ctx context.Context, arg UpdateProductStockParams) (Product, error) {
+	row := q.db.QueryRowContext(ctx, updateProductStock, arg.StockQuantity, arg.ID)
+	var i Product
+	err := row.Scan(
+		&i.ID,
+		&i.Name,
+		&i.Description,
+		&i.Price,
+		&i.Category,
+		&i.StockQuantity,
+		&i.AdditionDate,
+	)
+	return i, err
+}
