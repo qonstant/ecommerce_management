@@ -80,7 +80,16 @@ func (h *OrdersHandler) add(w http.ResponseWriter, r *http.Request) {
 		response.InternalServerError(w, r, err)
 		return
 	}
-	defer tx.Rollback()
+	defer func() {
+		if p := recover(); p != nil {
+			tx.Rollback()
+			panic(p) // re-throw panic after Rollback
+		} else if err != nil {
+			tx.Rollback() // err is non-nil; don't change it
+		} else {
+			err = tx.Commit() // err is nil; if Commit returns error update err
+		}
+	}()
 
 	// Create the order first with a placeholder total amount ("0.00")
 	order, err := tx.CreateOrder(r.Context(), postgres.CreateOrderParams{
@@ -97,7 +106,6 @@ func (h *OrdersHandler) add(w http.ResponseWriter, r *http.Request) {
 		// Fetch the product
 		product, err := tx.GetProduct(r.Context(), item.ProductID)
 		if err != nil {
-			response.InternalServerError(w, r, err)
 			return
 		}
 
@@ -165,14 +173,15 @@ func (h *OrdersHandler) add(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := tx.Commit(); err != nil {
+	// Re-fetch the updated order to return the correct total amount
+	updatedOrder, err := h.store.GetOrder(r.Context(), order.ID)
+	if err != nil {
 		response.InternalServerError(w, r, err)
 		return
 	}
 
-	response.OK(w, r, order)
+	response.OK(w, r, updatedOrder)
 }
-
 
 // @Summary Get an order by ID
 // @Tags orders
@@ -276,22 +285,23 @@ func (h *OrdersHandler) delete(w http.ResponseWriter, r *http.Request) {
 // @Produce json
 // @Param user query int true "User ID"
 // @Success 200 {array} postgres.Order
+// @Failure 400 {object} response.Object
 // @Failure 500 {object} response.Object
 // @Router /orders/search/user [get]
 func (h *OrdersHandler) searchByUser(w http.ResponseWriter, r *http.Request) {
-	userID := r.URL.Query().Get("user")
-	if userID == "" {
+	userIDStr := r.URL.Query().Get("user")
+	if userIDStr == "" {
 		response.BadRequest(w, r, errors.New("user ID is required"), nil)
 		return
 	}
 
-	id, err := strconv.ParseInt(userID, 10, 64)
+	userID, err := strconv.ParseInt(userIDStr, 10, 64)
 	if err != nil {
 		response.BadRequest(w, r, err, nil)
 		return
 	}
 
-	orders, err := h.store.SearchOrdersByUser(r.Context(), id)
+	orders, err := h.store.SearchOrdersByUser(r.Context(), userID)
 	if err != nil {
 		response.InternalServerError(w, r, err)
 		return
@@ -304,8 +314,9 @@ func (h *OrdersHandler) searchByUser(w http.ResponseWriter, r *http.Request) {
 // @Tags orders
 // @Accept json
 // @Produce json
-// @Param status query string true "Order Status"
+// @Param status query string true "Order status"
 // @Success 200 {array} postgres.Order
+// @Failure 400 {object} response.Object
 // @Failure 500 {object} response.Object
 // @Router /orders/search/status [get]
 func (h *OrdersHandler) searchByStatus(w http.ResponseWriter, r *http.Request) {
@@ -316,6 +327,7 @@ func (h *OrdersHandler) searchByStatus(w http.ResponseWriter, r *http.Request) {
 	}
 
 	orders, err := h.store.SearchOrdersByStatus(r.Context(), postgres.OrderStatus(status))
+
 	if err != nil {
 		response.InternalServerError(w, r, err)
 		return
