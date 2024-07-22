@@ -1,38 +1,28 @@
-version: '3.8'
-
-networks:
-  ecommerce-service:
-    driver: bridge
-
+version: "3.8"
 services:
   db:
     image: postgres:latest
-    container_name: ecommerce-db
     environment:
-      POSTGRES_DB: ecommerce-db
       POSTGRES_USER: ecommerce-user
       POSTGRES_PASSWORD: password
-    env_file:
-      - app.env
+      POSTGRES_DB: ecommerce-db
     ports:
       - "5432:5432"
-    networks: 
-      - ecommerce-service
+    networks:
+      - ecommerce-network
 
-  app:
-    image: ecommerce-list
-    build:
-      context: .
-      dockerfile: Dockerfile
-    container_name: ecommerce-service
-    environment:
-      DB_SOURCE: postgresql://ecommerce-user:password@db:5432/ecommerce-db?sslmode=disable
-      PORT: 8080
-    env_file:
-      - app.env
-    ports:
-      - "8080:8080"
+  ecommerce-service:
+    build: .
+    command: ["./wait-for-db.sh", "db", "./ecommerce-service"]
     depends_on:
       - db
-    networks: 
-      - ecommerce-service
+    environment:
+      DB_SOURCE: postgresql://ecommerce-user:password@db:5432/ecommerce-db?sslmode=disable
+    ports:
+      - "8080:8080"
+    networks:
+      - ecommerce-network
+
+networks:
+  ecommerce-network:
+    driver: bridge

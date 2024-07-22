@@ -24,7 +24,7 @@ up:
 
 down:
 	docker compose down
-	docker rmi ecommerce-service
+	docker rmi ecommerce_management-ecommerce-service
 
 restart: down up
 

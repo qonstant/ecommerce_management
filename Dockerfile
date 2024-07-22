@@ -22,6 +22,9 @@ RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o ecommerce-service .
 # Create a new stage for the final application image (based on Alpine Linux)
 FROM alpine:3.18
 
+# Install PostgreSQL client tools
+RUN apk add --no-cache postgresql-client
+
 # Set the working directory inside the container
 WORKDIR /app
 
@@ -34,8 +37,14 @@ COPY --from=builder /build/app.env ./app.env
 # Copy your migration files
 COPY --from=builder /build/db/migrations ./db/migrations
 
+# Copy the wait-for-db.sh script
+COPY wait-for-db.sh ./wait-for-db.sh
+
+# Ensure the wait-for-db.sh script is executable
+RUN chmod +x wait-for-db.sh
+
 # Expose port 8080 if your application needs it
 EXPOSE 8080
 
 # Command to run your application
-CMD ["./ecommerce-service"]
+CMD ["./wait-for-db.sh", "db", "./ecommerce-service"]

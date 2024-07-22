@@ -185,7 +185,12 @@ func (h *OrdersHandler) delete(w http.ResponseWriter, r *http.Request) {
 // @Failure 500 {object} response.Object
 // @Router /orders/search/user [get]
 func (h *OrdersHandler) searchByUser(w http.ResponseWriter, r *http.Request) {
-	userID, err := strconv.ParseInt(r.URL.Query().Get("user"), 10, 64)
+	userIDStr := r.URL.Query().Get("user")
+	if userIDStr == "" {
+		response.BadRequest(w, r, errors.New("missing user parameter"), nil)
+		return
+	}
+	userID, err := strconv.ParseInt(userIDStr, 10, 64)
 	if err != nil {
 		response.BadRequest(w, r, err, nil)
 		return
