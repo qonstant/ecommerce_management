@@ -15,6 +15,11 @@ type Config struct {
 	TokenSymmetricKey   string        `mapstructure:"TOKEN_SYMMETRIC_KEY"`
 	AccessTokenDuration time.Duration `mapstructure:"ACCESS_TOKEN_DURATION"`
 	BaseURL             string        `mapstructure:"BASE_URL"`
+	GrantType           string        `mapstructure:"grant_type"`
+	Scope               string        `mapstructure:"scope"`
+	ClientID            string        `mapstructure:"client_id"`
+	ClientSecret        string        `mapstructure:"client_secret"`
+	ShopID              string        `mapstructure:"shop_id"`
 }
 
 func LoadConfig(path string) (config Config, err error) {

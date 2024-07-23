@@ -7,7 +7,7 @@ SELECT * FROM orders ORDER BY order_date ASC;
 -- name: CreateOrder :one
 INSERT INTO orders (user_id, total_amount, order_date) 
 VALUES ($1, $2, NOW()) 
-RETURNING *;
+RETURNING id, user_id, total_amount, order_date, status;
 
 -- name: UpdateOrder :one
 UPDATE orders SET 
