@@ -17,6 +17,12 @@ type PaymentCardID struct {
 	ID string `json:"id"`
 }
 
+type CreatePaymentParams struct {
+	UserID  int64  `json:"user_id"`
+	OrderID int64  `json:"order_id"`
+	Amount  string `json:"amount"`
+}
+
 type PaymentRequest struct {
 	Amount          string        `json:"amount"`
 	Currency        string        `json:"currency"`

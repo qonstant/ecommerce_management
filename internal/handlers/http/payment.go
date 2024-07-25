@@ -1,3 +1,4 @@
+// payments_handler.go
 package http
 
 import (
@@ -5,20 +6,30 @@ import (
 	"encoding/json"
 	"errors"
 	"net/http"
+	"os"
 	"strconv"
 
 	"github.com/go-chi/chi/v5"
 	"ecommerce_management/internal/repository/postgres"
 	"ecommerce_management/pkg/server/response"
+	"ecommerce_management/internal/provider/epay"
+	"ecommerce_management/internal/domain/payment"
+	"fmt"
 )
 
 type PaymentsHandler struct {
-	db *postgres.Queries
+	db         *postgres.Queries
+	epayClient *epay.Client
+	shopID     string
+	terminalID string
 }
 
-func NewPaymentHandler(conn *sql.DB) *PaymentsHandler {
+func NewPaymentsHandler(conn *sql.DB, epayClient *epay.Client) *PaymentsHandler {
 	return &PaymentsHandler{
-		db: postgres.New(conn),
+		db:         postgres.New(conn),
+		epayClient: epayClient,
+		shopID:     os.Getenv("SHOP_ID"),
+		terminalID: os.Getenv("TERMINAL_ID"),
 	}
 }
 
@@ -58,28 +69,84 @@ func (h *PaymentsHandler) list(w http.ResponseWriter, r *http.Request) {
 // @Tags payments
 // @Accept json
 // @Produce json
-// @Param request body postgres.CreatePaymentParams true "Payment details"
+// @Param request body payment.CreatePaymentParams true "Payment details"
 // @Success 200 {object} postgres.Payment
 // @Failure 400 {object} response.Object
 // @Failure 500 {object} response.Object
 // @Router /payments [post]
 func (h *PaymentsHandler) add(w http.ResponseWriter, r *http.Request) {
-	var req postgres.CreatePaymentParams
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		response.BadRequest(w, r, err, req)
-		return
-	}
+    var req payment.CreatePaymentParams
 
-	payment, err := h.db.CreatePayment(r.Context(), req)
-	if err != nil {
-		response.InternalServerError(w, r, err)
-		return
-	}
+    if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+        response.BadRequest(w, r, err, req)
+        return
+    }
 
-	// Here you would make a call to ePayment.kz API for actual payment processing
-	// Ensure you handle that part appropriately
+    payment, err := h.db.CreatePayment(r.Context(), postgres.CreatePaymentParams{
+        UserID:  req.UserID,
+        OrderID: req.OrderID,
+        Amount:  req.Amount,
+        Status:  postgres.PaymentStatusUnsuccessful,
+    })
+    if err != nil {
+        response.InternalServerError(w, r, err)
+        return
+    }
 
-	response.OK(w, r, payment)
+    // Step 1: Obtain OAuth token
+    token, err := h.epayClient.GetPaymentToken(r.Context(), nil)
+    if err != nil {
+        response.InternalServerError(w, r, err)
+        return
+    }
+
+    // Step 2: Create an invoice using the token
+    invoiceReq := epay.CreateInvoiceRequest{
+        ShopID:     h.shopID,
+        TerminalID: h.terminalID,
+        OrderID:    strconv.FormatInt(payment.OrderID, 10),
+        Amount:     req.Amount,
+        Currency:   "KZT",
+    }
+
+    // Debug print statement for the invoice request payload
+    fmt.Printf("Invoice request payload: %+v\n", invoiceReq)
+
+    invoiceResp, err := h.epayClient.CreateInvoice(r.Context(), token.AccessToken, invoiceReq)
+    if err != nil {
+        // Debug print statement for CreateInvoice error
+        fmt.Println("Error creating invoice:", err)
+        response.InternalServerError(w, r, err)
+        return
+    }
+
+    // Debug print statement for invoice response
+    fmt.Println("Invoice response:", invoiceResp)
+
+    // Update payment status based on invoice response
+    status := postgres.PaymentStatusSuccessful
+    if !invoiceResp.Success {
+        status = postgres.PaymentStatusUnsuccessful
+    }
+    updateReq := postgres.UpdatePaymentParams{
+        ID:      payment.ID,
+        UserID:  payment.UserID,
+        OrderID: payment.OrderID,
+        Amount:  payment.Amount,
+        Status:  status,
+    }
+    payment, err = h.db.UpdatePayment(r.Context(), updateReq)
+    if err != nil {
+        // Debug print statement for UpdatePayment error
+        fmt.Println("Error updating payment:", err)
+        response.InternalServerError(w, r, err)
+        return
+    }
+
+    // Debug print statement for successful payment update
+    fmt.Println("Payment updated successfully:", payment)
+
+    response.OK(w, r, payment)
 }
 
 // @Summary Get a payment by ID
@@ -251,7 +318,7 @@ func (h *PaymentsHandler) searchByStatus(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
-	// Convert string to PaymentStatus
+	// Convert status to the appropriate type
 	paymentStatus := postgres.PaymentStatus(status)
 
 	payments, err := h.db.SearchPaymentsByStatus(r.Context(), paymentStatus)

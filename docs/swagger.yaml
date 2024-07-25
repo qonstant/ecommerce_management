@@ -17,14 +17,12 @@ definitions:
         description: The quantity of the product
         type: integer
     type: object
-  postgres.CreatePaymentParams:
+  payment.CreatePaymentParams:
     properties:
       amount:
         type: string
       order_id:
         type: integer
-      status:
-        $ref: '#/definitions/postgres.PaymentStatus'
       user_id:
         type: integer
     type: object
@@ -338,7 +336,7 @@ paths:
       consumes:
       - application/json
       parameters:
-      - description: Order Status
+      - description: Order status
         in: query
         name: status
         required: true
@@ -366,7 +364,7 @@ paths:
       parameters:
       - description: User ID
         in: query
-        name: user
+        name: user_id
         required: true
         type: integer
       produces:
@@ -414,7 +412,7 @@ paths:
         name: request
         required: true
         schema:
-          $ref: '#/definitions/postgres.CreatePaymentParams'
+          $ref: '#/definitions/payment.CreatePaymentParams'
       produces:
       - application/json
       responses:
@@ -556,7 +554,7 @@ paths:
       consumes:
       - application/json
       parameters:
-      - description: Payment status
+      - description: Status
         in: query
         name: status
         required: true

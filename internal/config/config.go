@@ -7,7 +7,6 @@ import (
 )
 
 // Configurations for the application
-// Values begin read by viper from env file
 type Config struct {
 	DBDriver            string        `mapstructure:"DB_DRIVER"`
 	DBSource            string        `mapstructure:"DB_SOURCE"`
@@ -15,11 +14,17 @@ type Config struct {
 	TokenSymmetricKey   string        `mapstructure:"TOKEN_SYMMETRIC_KEY"`
 	AccessTokenDuration time.Duration `mapstructure:"ACCESS_TOKEN_DURATION"`
 	BaseURL             string        `mapstructure:"BASE_URL"`
-	GrantType           string        `mapstructure:"grant_type"`
-	Scope               string        `mapstructure:"scope"`
-	ClientID            string        `mapstructure:"client_id"`
-	ClientSecret        string        `mapstructure:"client_secret"`
-	ShopID              string        `mapstructure:"shop_id"`
+	GrantType           string        `mapstructure:"GRANT_TYPE"`
+	Scope               string        `mapstructure:"SCOPE"`
+	Login               string        `mapstructure:"CLIENT_ID"`
+	Password            string        `mapstructure:"CLIENT_SECRET"`
+	ShopID              string        `mapstructure:"SHOP_ID"`
+	TerminalID          string        `mapstructure:"TERMINAL_ID"`
+	EPAYURL             string        `mapstructure:"EPAY_URL"`
+	EPAYLogin           string        `mapstructure:"EPAY_LOGIN"`
+	EPAYPassword        string        `mapstructure:"EPAY_PASSWORD"`
+	EPAYOAuthURL        string        `mapstructure:"EPAY_OAUTH_URL"`
+	EPAYPaymentPageURL  string        `mapstructure:"EPAY_PAYMENT_PAGE_URL"`
 }
 
 func LoadConfig(path string) (config Config, err error) {

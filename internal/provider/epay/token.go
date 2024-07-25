@@ -5,18 +5,9 @@ import (
 	"context"
 	"mime/multipart"
 	"net/url"
+	"strconv"
 	"time"
-
-	"github.com/shopspring/decimal"
 )
-
-type TokenResponse struct {
-	Scope        string          `json:"scope"`
-	ExpiresIn    decimal.Decimal `json:"expires_in"`
-	TokenType    string          `json:"token_type"`
-	AccessToken  string          `json:"access_token"`
-	RefreshToken string          `json:"refresh_token"`
-}
 
 func (c *Client) initGlobalTokenRefresher() (err error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
@@ -26,7 +17,7 @@ func (c *Client) initGlobalTokenRefresher() (err error) {
 	if err != nil {
 		return
 	}
-	ticker := time.NewTicker(time.Duration(c.credentials.GlobalToken.ExpiresIn.IntPart()-60) * time.Second)
+	ticker := time.NewTicker(time.Duration(parseInt(c.credentials.GlobalToken.ExpiresIn)-60) * time.Second)
 
 	go func() {
 		for {
@@ -36,6 +27,11 @@ func (c *Client) initGlobalTokenRefresher() (err error) {
 	}()
 
 	return
+}
+
+func parseInt(str string) int {
+	value, _ := strconv.Atoi(str)
+	return value
 }
 
 func (c *Client) GetPaymentToken(ctx context.Context, src *PaymentRequest) (dst TokenResponse, err error) {
@@ -60,6 +56,7 @@ func (c *Client) GetPaymentToken(ctx context.Context, src *PaymentRequest) (dst 
 		_ = writer.WriteField("invoiceID", src.InvoiceID)
 		_ = writer.WriteField("terminal", src.TerminalID)
 	}
+	_ = writer.Close()
 
 	headers := map[string]string{
 		"Content-Type": writer.FormDataContentType(),

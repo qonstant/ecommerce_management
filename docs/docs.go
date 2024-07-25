@@ -104,7 +104,7 @@ const docTemplate = `{
                 "parameters": [
                     {
                         "type": "string",
-                        "description": "Order Status",
+                        "description": "Order status",
                         "name": "status",
                         "in": "query",
                         "required": true
@@ -145,7 +145,7 @@ const docTemplate = `{
                     {
                         "type": "integer",
                         "description": "User ID",
-                        "name": "user",
+                        "name": "user_id",
                         "in": "query",
                         "required": true
                     }
@@ -357,7 +357,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/postgres.CreatePaymentParams"
+                            "$ref": "#/definitions/payment.CreatePaymentParams"
                         }
                     }
                 ],
@@ -438,7 +438,7 @@ const docTemplate = `{
                 "parameters": [
                     {
                         "type": "string",
-                        "description": "Payment status",
+                        "description": "Status",
                         "name": "status",
                         "in": "query",
                         "required": true
@@ -1260,7 +1260,7 @@ const docTemplate = `{
                 }
             }
         },
-        "postgres.CreatePaymentParams": {
+        "payment.CreatePaymentParams": {
             "type": "object",
             "properties": {
                 "amount": {
@@ -1268,9 +1268,6 @@ const docTemplate = `{
                 },
                 "order_id": {
                     "type": "integer"
-                },
-                "status": {
-                    "$ref": "#/definitions/postgres.PaymentStatus"
                 },
                 "user_id": {
                     "type": "integer"

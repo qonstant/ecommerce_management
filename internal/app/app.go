@@ -2,6 +2,7 @@ package app
 
 import (
 	"context"
+	_ "ecommerce_management/docs"
 	"flag"
 	"fmt"
 	"os"
@@ -14,6 +15,7 @@ import (
 	"ecommerce_management/internal/config"
 	"ecommerce_management/internal/database"
 	"ecommerce_management/internal/handlers"
+	"ecommerce_management/internal/provider/epay"
 	"ecommerce_management/pkg/log"
 	"ecommerce_management/pkg/server"
 )
@@ -28,12 +30,33 @@ func Run() {
 		return
 	}
 
+	// Debug print to verify configuration values
+	fmt.Printf("Loaded configuration: %+v\n", configs)
+	fmt.Printf("EPAY Configuration: \n* URL: %s\n* Login: %s\n* Password: %s\n* OAuthURL: %s\n* PaymentPageURL: %s\n",
+		configs.EPAYURL, configs.EPAYLogin, configs.EPAYPassword, configs.EPAYOAuthURL, configs.EPAYPaymentPageURL)
+
 	database.InitDB()
+
+	// Initialize the ePay client
+	epayClient, err := epay.New(epay.Credentials{
+		URL:            configs.EPAYURL,
+		Login:          configs.EPAYLogin,
+		Password:       configs.EPAYPassword,
+		OAuthURL:       configs.EPAYOAuthURL,
+		PaymentPageURL: configs.EPAYPaymentPageURL,
+		ShopID:         configs.ShopID,
+		TerminalID:     configs.TerminalID,
+	})
+	if err != nil {
+		logger.Error("ERR_INIT_EPAY_CLIENT", zap.Error(err))
+		return
+	}
 
 	handlers, err := handlers.New(
 		handlers.Dependencies{
-			DB:      database.DB,
-			Configs: configs,
+			DB:         database.DB,
+			Configs:    configs,
+			EpayClient: epayClient, // Add epayClient to dependencies
 		},
 		handlers.WithHTTPHandler())
 	if err != nil {
