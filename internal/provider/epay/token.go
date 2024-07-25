@@ -13,16 +13,16 @@ func (c *Client) initGlobalTokenRefresher() (err error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
-	c.credentials.GlobalToken, err = c.GetPaymentToken(ctx, nil)
+	c.Credentials.GlobalToken, err = c.GetPaymentToken(ctx, nil)
 	if err != nil {
 		return
 	}
-	ticker := time.NewTicker(time.Duration(parseInt(c.credentials.GlobalToken.ExpiresIn)-60) * time.Second)
+	ticker := time.NewTicker(time.Duration(parseInt(c.Credentials.GlobalToken.ExpiresIn)-60) * time.Second)
 
 	go func() {
 		for {
 			<-ticker.C
-			c.credentials.GlobalToken, err = c.GetPaymentToken(ctx, nil)
+			c.Credentials.GlobalToken, err = c.GetPaymentToken(ctx, nil)
 		}
 	}()
 
@@ -35,7 +35,7 @@ func parseInt(str string) int {
 }
 
 func (c *Client) GetPaymentToken(ctx context.Context, src *PaymentRequest) (dst TokenResponse, err error) {
-	path, err := url.Parse(c.credentials.OAuthURL)
+	path, err := url.Parse(c.Credentials.OAuthURL)
 	if err != nil {
 		return
 	}
@@ -45,8 +45,8 @@ func (c *Client) GetPaymentToken(ctx context.Context, src *PaymentRequest) (dst 
 	writer := multipart.NewWriter(body)
 	defer writer.Close()
 
-	_ = writer.WriteField("client_id", c.credentials.Login)
-	_ = writer.WriteField("client_secret", c.credentials.Password)
+	_ = writer.WriteField("client_id", c.Credentials.Login)
+	_ = writer.WriteField("client_secret", c.Credentials.Password)
 	_ = writer.WriteField("grant_type", "client_credentials")
 	_ = writer.WriteField("scope", "webapi usermanagement email_send verification statement statistics payment")
 
@@ -54,7 +54,7 @@ func (c *Client) GetPaymentToken(ctx context.Context, src *PaymentRequest) (dst 
 		_ = writer.WriteField("amount", src.Amount)
 		_ = writer.WriteField("currency", src.Currency)
 		_ = writer.WriteField("invoiceID", src.InvoiceID)
-		_ = writer.WriteField("terminal", src.TerminalID)
+		_ = writer.WriteField("terminal", c.Credentials.TerminalID)
 	}
 	_ = writer.Close()
 

@@ -95,7 +95,7 @@ func (c *Client) PayByPaymentPage(ctx context.Context, w http.ResponseWriter, sr
 		if err != nil {
 			return
 		}
-		src.PaymentPageURL = c.credentials.PaymentPageURL
+		src.PaymentPageURL = c.Credentials.PaymentPageURL
 	}
 
 	tmpl, err := template.ParseFiles(templateName)
@@ -107,7 +107,7 @@ func (c *Client) PayByPaymentPage(ctx context.Context, w http.ResponseWriter, sr
 }
 
 func (c *Client) PayBySavedCard(ctx context.Context, src PaymentRequest) (dst PaymentResponse, err error) {
-	path, err := url.Parse(c.credentials.URL)
+	path, err := url.Parse(c.Credentials.URL)
 	if err != nil {
 		return
 	}

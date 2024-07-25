@@ -55,7 +55,7 @@ type StatusResponse struct {
 }
 
 func (c *Client) GetStatus(ctx context.Context, token string, invoiceID string) (dst StatusResponse, err error) {
-	path, err := url.Parse(c.credentials.URL)
+	path, err := url.Parse(c.Credentials.URL)
 	if err != nil {
 		return
 	}

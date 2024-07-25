@@ -25,8 +25,8 @@ func New(credentials Credentials) (*Client, error) {
 
 	// Create and return the new Client instance
 	client := &Client{
-		httpClient:  &http.Client{Timeout: 30 * time.Second}, // Initialize httpClient here
-		credentials: credentials,
+		httpClient:  &http.Client{Timeout: 40 * time.Second}, // Initialize httpClient here
+		Credentials: credentials,
 	}
 
 	if err := client.initGlobalTokenRefresher(); err != nil {
@@ -48,9 +48,6 @@ func (c *Client) request(ctx context.Context, repeat bool, method, url string, b
 	for key, value := range headers {
 		req.Header.Add(key, value)
 	}
-
-	fmt.Printf("Request URL: %s\n", url)
-	fmt.Printf("Request Headers: %v\n", headers)
 
 	// send http request
 	res, err := c.httpClient.Do(req)
@@ -76,9 +73,6 @@ func (c *Client) request(ctx context.Context, repeat bool, method, url string, b
 		return
 	}
 
-	fmt.Printf("Response Status: %d\n", res.StatusCode)
-	fmt.Printf("Response Body: %s\n", string(data))
-
 	// check error status
 	if res.StatusCode != http.StatusOK {
 		return errors.New(string(data))
@@ -96,11 +90,7 @@ func (c *Client) CreateInvoice(ctx context.Context, token string, req CreateInvo
 	var response CreateInvoiceResponse
 
 	// Define the endpoint URL for creating an invoice (adjust as necessary)
-	url := c.credentials.PaymentPageURL
-
-	// Set ShopID and TerminalID in the request
-	req.ShopID = c.credentials.ShopID
-	req.TerminalID = c.credentials.TerminalID
+	url := c.Credentials.PaymentPageURL
 
 	// Prepare headers
 	headers := map[string]string{
@@ -115,14 +105,14 @@ func (c *Client) CreateInvoice(ctx context.Context, token string, req CreateInvo
 		return response, err
 	}
 
-	fmt.Printf("Invoice request payload: %s\n", string(body))
-
 	// Make the request
 	err = c.request(ctx, true, http.MethodPost, url, io.NopCloser(bytes.NewReader(body)), headers, &response)
 	if err != nil {
 		fmt.Printf("Error making request: %v\n", err)
 		return response, err
 	}
+
+	response.Success = true
 
 	return response, nil
 }

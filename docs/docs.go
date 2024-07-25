@@ -438,7 +438,7 @@ const docTemplate = `{
                 "parameters": [
                     {
                         "type": "string",
-                        "description": "Status",
+                        "description": "Payment status",
                         "name": "status",
                         "in": "query",
                         "required": true
@@ -1264,6 +1264,15 @@ const docTemplate = `{
             "type": "object",
             "properties": {
                 "amount": {
+                    "type": "string"
+                },
+                "cvc": {
+                    "type": "string"
+                },
+                "expDate": {
+                    "type": "string"
+                },
+                "hpan": {
                     "type": "string"
                 },
                 "order_id": {

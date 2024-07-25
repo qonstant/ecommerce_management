@@ -1,20 +1,22 @@
-// payments_handler.go
 package http
 
 import (
 	"database/sql"
 	"encoding/json"
 	"errors"
+	"log"
 	"net/http"
-	"os"
 	"strconv"
+	"time"
 
-	"github.com/go-chi/chi/v5"
+	"ecommerce_management/internal/domain/payment"
+	"ecommerce_management/internal/provider/epay"
 	"ecommerce_management/internal/repository/postgres"
 	"ecommerce_management/pkg/server/response"
-	"ecommerce_management/internal/provider/epay"
-	"ecommerce_management/internal/domain/payment"
 	"fmt"
+
+	"github.com/go-chi/chi/v5"
+	"golang.org/x/exp/rand"
 )
 
 type PaymentsHandler struct {
@@ -28,8 +30,8 @@ func NewPaymentsHandler(conn *sql.DB, epayClient *epay.Client) *PaymentsHandler 
 	return &PaymentsHandler{
 		db:         postgres.New(conn),
 		epayClient: epayClient,
-		shopID:     os.Getenv("SHOP_ID"),
-		terminalID: os.Getenv("TERMINAL_ID"),
+		shopID:     epayClient.Credentials.ShopID,
+		terminalID: epayClient.Credentials.TerminalID,
 	}
 }
 
@@ -65,6 +67,20 @@ func (h *PaymentsHandler) list(w http.ResponseWriter, r *http.Request) {
 	response.OK(w, r, payments)
 }
 
+func generateInvoiceID() string {
+	rand.Seed(uint64(time.Now().UnixNano())) // Convert int64 to uint64
+	return fmt.Sprintf("%012d", rand.Int63n(1e12))
+}
+
+// @Summary Create a new payment
+// @Tags payments
+// @Accept json
+// @Produce json
+// @Param request body payment.CreatePaymentParams true "Payment details"
+// @Success 200 {object} postgres.Payment
+// @Failure 400 {object} response.Object
+// @Failure 500 {object} response.Object
+// @Router /payments [post]
 // @Summary Create a new payment
 // @Tags payments
 // @Accept json
@@ -75,78 +91,119 @@ func (h *PaymentsHandler) list(w http.ResponseWriter, r *http.Request) {
 // @Failure 500 {object} response.Object
 // @Router /payments [post]
 func (h *PaymentsHandler) add(w http.ResponseWriter, r *http.Request) {
-    var req payment.CreatePaymentParams
+	var req payment.CreatePaymentParams
 
-    if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-        response.BadRequest(w, r, err, req)
-        return
-    }
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		response.BadRequest(w, r, err, req)
+		return
+	}
 
-    payment, err := h.db.CreatePayment(r.Context(), postgres.CreatePaymentParams{
-        UserID:  req.UserID,
-        OrderID: req.OrderID,
-        Amount:  req.Amount,
-        Status:  postgres.PaymentStatusUnsuccessful,
-    })
-    if err != nil {
-        response.InternalServerError(w, r, err)
-        return
-    }
+	amount, err := strconv.ParseInt(req.Amount, 10, 64)
+	if err != nil {
+		response.BadRequest(w, r, fmt.Errorf("invalid amount format"), req)
+		return
+	}
 
-    // Step 1: Obtain OAuth token
-    token, err := h.epayClient.GetPaymentToken(r.Context(), nil)
-    if err != nil {
-        response.InternalServerError(w, r, err)
-        return
-    }
+	user, err := h.db.GetUser(r.Context(), req.UserID)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			response.NotFound(w, r, fmt.Errorf("user not found"))
+			return
+		}
+		response.InternalServerError(w, r, err)
+		return
+	}
 
-    // Step 2: Create an invoice using the token
-    invoiceReq := epay.CreateInvoiceRequest{
-        ShopID:     h.shopID,
-        TerminalID: h.terminalID,
-        OrderID:    strconv.FormatInt(payment.OrderID, 10),
-        Amount:     req.Amount,
-        Currency:   "KZT",
-    }
+	payment, err := h.db.CreatePayment(r.Context(), postgres.CreatePaymentParams{
+		UserID:  req.UserID,
+		OrderID: req.OrderID,
+		Amount:  req.Amount,
+		Status:  postgres.PaymentStatusUnsuccessful,
+	})
+	if err != nil {
+		response.InternalServerError(w, r, err)
+		return
+	}
 
-    // Debug print statement for the invoice request payload
-    fmt.Printf("Invoice request payload: %+v\n", invoiceReq)
+	invoiceID := generateInvoiceID()
 
-    invoiceResp, err := h.epayClient.CreateInvoice(r.Context(), token.AccessToken, invoiceReq)
-    if err != nil {
-        // Debug print statement for CreateInvoice error
-        fmt.Println("Error creating invoice:", err)
-        response.InternalServerError(w, r, err)
-        return
-    }
+	src := epay.PaymentRequest{
+		Amount:    req.Amount,
+		Currency:  "KZT",
+		InvoiceID: invoiceID,
+	}
 
-    // Debug print statement for invoice response
-    fmt.Println("Invoice response:", invoiceResp)
+	token, err := h.epayClient.GetPaymentToken(r.Context(), &src)
+	if err != nil {
+		response.InternalServerError(w, r, err)
+		return
+	}
 
-    // Update payment status based on invoice response
-    status := postgres.PaymentStatusSuccessful
-    if !invoiceResp.Success {
-        status = postgres.PaymentStatusUnsuccessful
-    }
-    updateReq := postgres.UpdatePaymentParams{
-        ID:      payment.ID,
-        UserID:  payment.UserID,
-        OrderID: payment.OrderID,
-        Amount:  payment.Amount,
-        Status:  status,
-    }
-    payment, err = h.db.UpdatePayment(r.Context(), updateReq)
-    if err != nil {
-        // Debug print statement for UpdatePayment error
-        fmt.Println("Error updating payment:", err)
-        response.InternalServerError(w, r, err)
-        return
-    }
+	cryptogram := epay.Cryptogram{
+		HPAN:       req.HPAN,
+		ExpDate:    req.ExpDate,
+		CVC:        req.CVC,
+		TerminalID: h.terminalID,
+	}
 
-    // Debug print statement for successful payment update
-    fmt.Println("Payment updated successfully:", payment)
+	jsonData, err := json.Marshal(cryptogram)
+	if err != nil {
+		log.Printf("Error marshaling cryptogram to JSON: %v", err)
+		response.InternalServerError(w, r, err)
+		return
+	}
 
-    response.OK(w, r, payment)
+	cryptogramString, err := epay.EncryptWithPublicKey(jsonData, epay.PublicKeyPEM)
+	if err != nil {
+		log.Printf("Error encrypting data: %v", err)
+		response.InternalServerError(w, r, err)
+		return
+	}
+
+	invoiceReq := epay.CreateInvoiceRequest{
+		Amount:      amount,
+		Currency:    "KZT",
+		Name:        user.FullName,
+		Cryptogram:  cryptogramString,
+		Email:       user.Email,
+		InvoiceID:   invoiceID,
+		Description: "Payment for Order " + fmt.Sprint(req.OrderID),
+		CardSave:    false,
+		PostLink:    "https://testmerchant/order/" + fmt.Sprint(req.OrderID),
+	}
+
+	invoiceResp, err := h.epayClient.CreateInvoice(r.Context(), token.AccessToken, invoiceReq)
+	if err != nil {
+		log.Printf("Error creating invoice: %v", err)
+		response.InternalServerError(w, r, err)
+		return
+	}
+
+	// Update the payment status based on the response from the invoice creation
+	var status postgres.PaymentStatus
+	if invoiceResp.Success {
+		status = postgres.PaymentStatusSuccessful
+	} else {
+		status = postgres.PaymentStatusUnsuccessful
+	}
+
+	// Update the payment record in the database with the new status
+	updateReq := postgres.UpdatePaymentParams{
+		ID:      payment.ID,
+		UserID:  payment.UserID,
+		OrderID: payment.OrderID,
+		Amount:  payment.Amount,
+		Status:  status,
+	}
+
+	payment, err = h.db.UpdatePayment(r.Context(), updateReq)
+	if err != nil {
+		log.Printf("Error updating payment: %v", err)
+		response.InternalServerError(w, r, err)
+		return
+	}
+
+	response.OK(w, r, payment)
 }
 
 // @Summary Get a payment by ID
@@ -256,9 +313,10 @@ func (h *PaymentsHandler) delete(w http.ResponseWriter, r *http.Request) {
 func (h *PaymentsHandler) searchByUser(w http.ResponseWriter, r *http.Request) {
 	userIDStr := r.URL.Query().Get("user")
 	if userIDStr == "" {
-		response.BadRequest(w, r, errors.New("missing user parameter"), nil)
+		response.BadRequest(w, r, errors.New("user query parameter is required"), nil)
 		return
 	}
+
 	userID, err := strconv.ParseInt(userIDStr, 10, 64)
 	if err != nil {
 		response.BadRequest(w, r, err, nil)
@@ -285,9 +343,10 @@ func (h *PaymentsHandler) searchByUser(w http.ResponseWriter, r *http.Request) {
 func (h *PaymentsHandler) searchByOrder(w http.ResponseWriter, r *http.Request) {
 	orderIDStr := r.URL.Query().Get("order")
 	if orderIDStr == "" {
-		response.BadRequest(w, r, errors.New("missing order parameter"), nil)
+		response.BadRequest(w, r, errors.New("order query parameter is required"), nil)
 		return
 	}
+
 	orderID, err := strconv.ParseInt(orderIDStr, 10, 64)
 	if err != nil {
 		response.BadRequest(w, r, err, nil)
@@ -307,21 +366,18 @@ func (h *PaymentsHandler) searchByOrder(w http.ResponseWriter, r *http.Request) 
 // @Tags payments
 // @Accept json
 // @Produce json
-// @Param status query string true "Payment status"
+// @Param status query string true "Payment Status"
 // @Success 200 {array} postgres.Payment
 // @Failure 500 {object} response.Object
 // @Router /payments/search/status [get]
 func (h *PaymentsHandler) searchByStatus(w http.ResponseWriter, r *http.Request) {
 	status := r.URL.Query().Get("status")
 	if status == "" {
-		response.BadRequest(w, r, errors.New("missing status parameter"), nil)
+		response.BadRequest(w, r, errors.New("status query parameter is required"), nil)
 		return
 	}
 
-	// Convert status to the appropriate type
-	paymentStatus := postgres.PaymentStatus(status)
-
-	payments, err := h.db.SearchPaymentsByStatus(r.Context(), paymentStatus)
+	payments, err := h.db.SearchPaymentsByStatus(r.Context(), postgres.PaymentStatus(status))
 	if err != nil {
 		response.InternalServerError(w, r, err)
 		return

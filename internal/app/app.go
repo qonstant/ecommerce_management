@@ -32,8 +32,8 @@ func Run() {
 
 	// Debug print to verify configuration values
 	fmt.Printf("Loaded configuration: %+v\n", configs)
-	fmt.Printf("EPAY Configuration: \n* URL: %s\n* Login: %s\n* Password: %s\n* OAuthURL: %s\n* PaymentPageURL: %s\n",
-		configs.EPAYURL, configs.EPAYLogin, configs.EPAYPassword, configs.EPAYOAuthURL, configs.EPAYPaymentPageURL)
+	fmt.Printf("EPAY Configuration: \n* URL: %s\n* Login: %s\n* Password: %s\n* OAuthURL: %s\n* PaymentPageURL: %s\n* TerminalID: %s\n",
+		configs.EPAYURL, configs.EPAYLogin, configs.EPAYPassword, configs.EPAYOAuthURL, configs.EPAYPaymentPageURL, configs.TerminalID)
 
 	database.InitDB()
 
@@ -56,7 +56,7 @@ func Run() {
 		handlers.Dependencies{
 			DB:         database.DB,
 			Configs:    configs,
-			EpayClient: epayClient, // Add epayClient to dependencies
+			EpayClient: epayClient,
 		},
 		handlers.WithHTTPHandler())
 	if err != nil {

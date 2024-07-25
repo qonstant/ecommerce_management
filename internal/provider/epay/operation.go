@@ -7,7 +7,7 @@ import (
 )
 
 func (c *Client) Charge(ctx context.Context, token, transactionID, amount string) (err error) {
-	path, err := url.Parse(c.credentials.URL)
+	path, err := url.Parse(c.Credentials.URL)
 	if err != nil {
 		return
 	}
@@ -27,7 +27,7 @@ func (c *Client) Charge(ctx context.Context, token, transactionID, amount string
 }
 
 func (c *Client) Cancel(ctx context.Context, token, transactionID string) (err error) {
-	path, err := url.Parse(c.credentials.URL)
+	path, err := url.Parse(c.Credentials.URL)
 	if err != nil {
 		return
 	}
