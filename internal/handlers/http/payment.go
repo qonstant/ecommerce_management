@@ -81,15 +81,6 @@ func generateInvoiceID() string {
 // @Failure 400 {object} response.Object
 // @Failure 500 {object} response.Object
 // @Router /payments [post]
-// @Summary Create a new payment
-// @Tags payments
-// @Accept json
-// @Produce json
-// @Param request body payment.CreatePaymentParams true "Payment details"
-// @Success 200 {object} postgres.Payment
-// @Failure 400 {object} response.Object
-// @Failure 500 {object} response.Object
-// @Router /payments [post]
 func (h *PaymentsHandler) add(w http.ResponseWriter, r *http.Request) {
 	var req payment.CreatePaymentParams
 
@@ -98,13 +89,23 @@ func (h *PaymentsHandler) add(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	amount, err := strconv.ParseInt(req.Amount, 10, 64)
+	order, err := h.db.GetOrder(r.Context(), req.OrderID)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			response.NotFound(w, r, fmt.Errorf("order not found"))
+			return
+		}
+		response.InternalServerError(w, r, err)
+		return
+	}
+
+	amount, err := strconv.ParseInt(order.TotalAmount, 10, 64)
 	if err != nil {
 		response.BadRequest(w, r, fmt.Errorf("invalid amount format"), req)
 		return
 	}
 
-	user, err := h.db.GetUser(r.Context(), req.UserID)
+	user, err := h.db.GetUser(r.Context(), order.UserID)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			response.NotFound(w, r, fmt.Errorf("user not found"))
@@ -115,9 +116,9 @@ func (h *PaymentsHandler) add(w http.ResponseWriter, r *http.Request) {
 	}
 
 	payment, err := h.db.CreatePayment(r.Context(), postgres.CreatePaymentParams{
-		UserID:  req.UserID,
+		UserID:  order.UserID,
 		OrderID: req.OrderID,
-		Amount:  req.Amount,
+		Amount:  order.TotalAmount,
 		Status:  postgres.PaymentStatusUnsuccessful,
 	})
 	if err != nil {
@@ -128,7 +129,7 @@ func (h *PaymentsHandler) add(w http.ResponseWriter, r *http.Request) {
 	invoiceID := generateInvoiceID()
 
 	src := epay.PaymentRequest{
-		Amount:    req.Amount,
+		Amount:    order.TotalAmount,
 		Currency:  "KZT",
 		InvoiceID: invoiceID,
 	}

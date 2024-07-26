@@ -19,8 +19,6 @@ definitions:
     type: object
   payment.CreatePaymentParams:
     properties:
-      amount:
-        type: string
       cvc:
         type: string
       expDate:
@@ -28,8 +26,6 @@ definitions:
       hpan:
         type: string
       order_id:
-        type: integer
-      user_id:
         type: integer
     type: object
   postgres.CreateProductParams:
@@ -560,7 +556,7 @@ paths:
       consumes:
       - application/json
       parameters:
-      - description: Payment status
+      - description: Payment Status
         in: query
         name: status
         required: true

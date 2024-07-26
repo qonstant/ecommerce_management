@@ -438,7 +438,7 @@ const docTemplate = `{
                 "parameters": [
                     {
                         "type": "string",
-                        "description": "Payment status",
+                        "description": "Payment Status",
                         "name": "status",
                         "in": "query",
                         "required": true
@@ -1263,9 +1263,6 @@ const docTemplate = `{
         "payment.CreatePaymentParams": {
             "type": "object",
             "properties": {
-                "amount": {
-                    "type": "string"
-                },
                 "cvc": {
                     "type": "string"
                 },
@@ -1276,9 +1273,6 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "order_id": {
-                    "type": "integer"
-                },
-                "user_id": {
                     "type": "integer"
                 }
             }

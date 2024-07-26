@@ -427,7 +427,7 @@
                 "parameters": [
                     {
                         "type": "string",
-                        "description": "Payment status",
+                        "description": "Payment Status",
                         "name": "status",
                         "in": "query",
                         "required": true
@@ -1252,9 +1252,6 @@
         "payment.CreatePaymentParams": {
             "type": "object",
             "properties": {
-                "amount": {
-                    "type": "string"
-                },
                 "cvc": {
                     "type": "string"
                 },
@@ -1265,9 +1262,6 @@
                     "type": "string"
                 },
                 "order_id": {
-                    "type": "integer"
-                },
-                "user_id": {
                     "type": "integer"
                 }
             }
