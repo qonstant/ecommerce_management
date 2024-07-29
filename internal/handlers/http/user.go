@@ -7,18 +7,22 @@ import (
 	"net/http"
 	"strconv"
 
-	"github.com/go-chi/chi/v5"
 	"ecommerce_management/internal/repository/postgres"
+	"ecommerce_management/internal/service/kafka"
 	"ecommerce_management/pkg/server/response"
+
+	"github.com/go-chi/chi/v5"
 )
 
 type UsersHandler struct {
-	db *postgres.Queries
+	db           *postgres.Queries
+	kafkaService kafka.KafkaService
 }
 
-func NewUserHandler(conn *sql.DB) *UsersHandler {
+func NewUserHandler(conn *sql.DB, kafkaService kafka.KafkaService) *UsersHandler {
 	return &UsersHandler{
-		db: postgres.New(conn),
+		db:           postgres.New(conn),
+		kafkaService: kafkaService,
 	}
 }
 
@@ -73,6 +77,24 @@ func (h *UsersHandler) add(w http.ResponseWriter, r *http.Request) {
 
 	user, err := h.db.CreateUser(r.Context(), req)
 	if err != nil {
+		response.InternalServerError(w, r, err)
+		return
+	}
+
+	// Produce Kafka message
+	userCreated, err := h.db.GetUser(r.Context(), user.ID)
+	if err != nil {
+		response.InternalServerError(w, r, err)
+		return
+	}
+
+	userCreatedJSON, err := json.Marshal(userCreated)
+	if err != nil {
+		response.InternalServerError(w, r, err)
+		return
+	}
+
+	if err := h.kafkaService.Producer(r.Context(), "new-user", userCreatedJSON); err != nil {
 		response.InternalServerError(w, r, err)
 		return
 	}

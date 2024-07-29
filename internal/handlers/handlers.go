@@ -14,6 +14,7 @@ import (
 	"ecommerce_management/internal/config"
 	"ecommerce_management/internal/handlers/http"
 	"ecommerce_management/internal/provider/epay"
+	"ecommerce_management/internal/service/kafka"
 )
 
 type Dependencies struct {
@@ -62,8 +63,11 @@ func WithHTTPHandler() Configuration {
 		docs.SwaggerInfo.BasePath = h.dependencies.Configs.BaseURL
 		h.HTTP.Get("/swagger/*", httpSwagger.WrapHandler)
 
+		// Creating new kafka service
+		kafkaService := kafka.NewKafkaService()
+
 		// Init service handlers
-		userHandler := http.NewUserHandler(h.dependencies.DB)
+		userHandler := http.NewUserHandler(h.dependencies.DB, kafkaService)
 		productHandler := http.NewProductHandler(h.dependencies.DB)
 		orderHandler := http.NewOrderHandler(h.dependencies.DB)
 		paymentHandler := http.NewPaymentsHandler(h.dependencies.DB, h.dependencies.EpayClient)
