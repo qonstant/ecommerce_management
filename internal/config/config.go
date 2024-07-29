@@ -1,10 +1,8 @@
 package config
 
 import (
-	"log"
 	"time"
 
-	"github.com/joho/godotenv"
 	"github.com/spf13/viper"
 )
 
@@ -27,13 +25,13 @@ type Config struct {
 	EPAYPassword        string        `mapstructure:"EPAY_PASSWORD"`
 	EPAYOAuthURL        string        `mapstructure:"EPAY_OAUTH_URL"`
 	EPAYPaymentPageURL  string        `mapstructure:"EPAY_PAYMENT_PAGE_URL"`
-}
-
-func init() {
-	err := godotenv.Load()
-	if err != nil {
-		log.Fatal("Error loading .env file")
-	}
+	KafkaURL            string        `mapstructure:"UPSTASH_KAFKA_REST_URL"`
+	KafkaUsername       string        `mapstructure:"UPSTASH_KAFKA_REST_USERNAME"`
+	KafkaPassword       string        `mapstructure:"UPSTASH_KAFKA_REST_PASSWORD"`
+	Email               string        `mapstructure:"EMAIL"`
+	EmailPassword       string        `mapstructure:"EMAIL_PASSWORD"`
+	SMTPServer          string        `mapstructure:"SMTP_SERVER"`
+	SMTPPort            int           `mapstructure:"SMTP_PORT"`
 }
 
 func LoadConfig(path string) (config Config, err error) {

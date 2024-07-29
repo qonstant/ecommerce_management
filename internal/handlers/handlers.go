@@ -21,6 +21,7 @@ type Dependencies struct {
 	DB         *sql.DB
 	Configs    config.Config
 	EpayClient *epay.Client
+	KafkaService kafka.KafkaService
 }
 
 // Configuration is an alias for a function that modifies the Handler
@@ -64,7 +65,11 @@ func WithHTTPHandler() Configuration {
 		h.HTTP.Get("/swagger/*", httpSwagger.WrapHandler)
 
 		// Creating new kafka service
-		kafkaService := kafka.NewKafkaService()
+		kafkaService := kafka.NewKafkaService(
+			h.dependencies.Configs.KafkaPassword,
+			h.dependencies.Configs.KafkaUsername,
+			h.dependencies.Configs.KafkaURL,
+		 )
 
 		// Init service handlers
 		userHandler := http.NewUserHandler(h.dependencies.DB, kafkaService)

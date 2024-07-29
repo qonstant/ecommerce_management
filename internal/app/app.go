@@ -16,6 +16,7 @@ import (
 	"ecommerce_management/internal/database"
 	"ecommerce_management/internal/handlers"
 	"ecommerce_management/internal/provider/epay"
+	"ecommerce_management/internal/service/kafka"
 	"ecommerce_management/pkg/log"
 	"ecommerce_management/pkg/server"
 )
@@ -52,11 +53,15 @@ func Run() {
 		return
 	}
 
+	// Initialize the Kafka service
+	kafkaService := kafka.NewKafkaService(configs.KafkaURL, configs.KafkaUsername, configs.KafkaPassword)
+
 	handlers, err := handlers.New(
 		handlers.Dependencies{
-			DB:         database.DB,
-			Configs:    configs,
-			EpayClient: epayClient,
+			DB:           database.DB,
+			Configs:      configs,
+			EpayClient:   epayClient,
+			KafkaService: kafkaService,
 		},
 		handlers.WithHTTPHandler())
 	if err != nil {

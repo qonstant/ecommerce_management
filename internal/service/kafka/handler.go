@@ -5,30 +5,37 @@ import (
 	"crypto/tls"
 	"encoding/json"
 	"log"
-	"os"
 
 	"github.com/segmentio/kafka-go"
 	"github.com/segmentio/kafka-go/sasl/scram"
 )
 
-type service struct{}
-
 type KafkaService interface {
 	Producer(ctx context.Context, topic string, message interface{}) error
 }
 
-func NewKafkaService() KafkaService {
-	return &service{}
+type service struct {
+	kafkaURL      string
+	kafkaUsername string
+	kafkaPassword string
+}
+
+func NewKafkaService(kafkaURL, kafkaUsername, kafkaPassword string) KafkaService {
+	return &service{
+		kafkaURL:      kafkaURL,
+		kafkaUsername: kafkaUsername,
+		kafkaPassword: kafkaPassword,
+	}
 }
 
 func (s *service) Producer(ctx context.Context, topic string, message interface{}) error {
-	mechanism, err := scram.Mechanism(scram.SHA256, os.Getenv("UPSTASH_KAFKA_REST_USERNAME"), os.Getenv("UPSTASH_KAFKA_REST_PASSWORD"))
+	mechanism, err := scram.Mechanism(scram.SHA256, s.kafkaUsername, s.kafkaPassword)
 	if err != nil {
 		return err
 	}
 
 	writer := &kafka.Writer{
-		Addr:  kafka.TCP(os.Getenv("UPSTASH_KAFKA_REST_URL")),
+		Addr:  kafka.TCP(s.kafkaURL),
 		Topic: topic,
 		Transport: &kafka.Transport{
 			SASL: mechanism,
