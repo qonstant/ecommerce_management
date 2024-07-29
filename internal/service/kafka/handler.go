@@ -5,6 +5,7 @@ import (
 	"crypto/tls"
 	"encoding/json"
 	"log"
+	"net/url"
 
 	"github.com/segmentio/kafka-go"
 	"github.com/segmentio/kafka-go/sasl/scram"
@@ -29,13 +30,25 @@ func NewKafkaService(kafkaURL, kafkaUsername, kafkaPassword string) KafkaService
 }
 
 func (s *service) Producer(ctx context.Context, topic string, message interface{}) error {
+	// Parse the Kafka URL
+	parsedURL, err := url.Parse(s.kafkaURL)
+	if err != nil {
+		return err
+	}
+
+	hostname := parsedURL.Hostname()
+	port := parsedURL.Port()
+	if port == "" {
+		port = "9092" // Default port if not specified
+	}
+
 	mechanism, err := scram.Mechanism(scram.SHA256, s.kafkaUsername, s.kafkaPassword)
 	if err != nil {
 		return err
 	}
 
 	writer := &kafka.Writer{
-		Addr:  kafka.TCP(s.kafkaURL),
+		Addr:  kafka.TCP(hostname + ":" + port),
 		Topic: topic,
 		Transport: &kafka.Transport{
 			SASL: mechanism,
