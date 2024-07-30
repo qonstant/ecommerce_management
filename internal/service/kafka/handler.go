@@ -59,6 +59,9 @@ func (s *service) Producer(ctx context.Context, topic string, message interface{
 		return err
 	}
 
+	deliveryChan := make(chan kafka.Event)
+	defer close(deliveryChan)
+
 	// Serialize the payload
 	payload, err := ser.Serialize(topic, message)
 	if err != nil {
@@ -66,12 +69,9 @@ func (s *service) Producer(ctx context.Context, topic string, message interface{
 	}
 
 	// Produce the message
-	deliveryChan := make(chan kafka.Event)
-	defer close(deliveryChan)
-
 	err = p.Produce(&kafka.Message{
 		TopicPartition: kafka.TopicPartition{Topic: &topic, Partition: kafka.PartitionAny},
-		Key:            []byte("test"), // You might want to modify this key as needed
+		Key:            []byte("test"),
 		Value:          payload,
 	}, deliveryChan)
 
