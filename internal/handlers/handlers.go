@@ -18,9 +18,9 @@ import (
 )
 
 type Dependencies struct {
-	DB         *sql.DB
-	Configs    config.Config
-	EpayClient *epay.Client
+	DB           *sql.DB
+	Configs      config.Config
+	EpayClient   *epay.Client
 	KafkaService kafka.KafkaService
 }
 
@@ -70,7 +70,7 @@ func WithHTTPHandler() Configuration {
 			h.dependencies.Configs.KafkaUsername,
 			h.dependencies.Configs.KafkaURL,
 			h.dependencies.Configs.SchemaURL,
-		 )
+		)
 
 		// Init service handlers
 		userHandler := http.NewUserHandler(h.dependencies.DB, kafkaService)
