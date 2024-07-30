@@ -28,10 +28,9 @@ type Config struct {
 	KafkaURL            string        `mapstructure:"UPSTASH_KAFKA_REST_URL"`
 	KafkaUsername       string        `mapstructure:"UPSTASH_KAFKA_REST_USERNAME"`
 	KafkaPassword       string        `mapstructure:"UPSTASH_KAFKA_REST_PASSWORD"`
-	Email               string        `mapstructure:"EMAIL"`
-	EmailPassword       string        `mapstructure:"EMAIL_PASSWORD"`
 	SMTPServer          string        `mapstructure:"SMTP_SERVER"`
 	SMTPPort            int           `mapstructure:"SMTP_PORT"`
+	SchemaURL           string        `mapstructure:"SCHEMA_URL"`
 }
 
 func LoadConfig(path string) (config Config, err error) {

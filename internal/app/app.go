@@ -54,7 +54,7 @@ func Run() {
 	}
 
 	// Initialize the Kafka service
-	kafkaService := kafka.NewKafkaService(configs.KafkaURL, configs.KafkaUsername, configs.KafkaPassword)
+	kafkaService := kafka.NewKafkaService(configs.KafkaURL, configs.KafkaUsername, configs.KafkaPassword, configs.SchemaURL)
 
 	handlers, err := handlers.New(
 		handlers.Dependencies{

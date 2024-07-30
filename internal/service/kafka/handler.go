@@ -2,13 +2,12 @@ package kafka
 
 import (
 	"context"
-	"crypto/tls"
-	"encoding/json"
 	"log"
-	"net/url"
 
-	"github.com/segmentio/kafka-go"
-	"github.com/segmentio/kafka-go/sasl/scram"
+	"github.com/confluentinc/confluent-kafka-go/v2/kafka"
+	"github.com/confluentinc/confluent-kafka-go/v2/schemaregistry"
+	"github.com/confluentinc/confluent-kafka-go/v2/schemaregistry/serde"
+	"github.com/confluentinc/confluent-kafka-go/v2/schemaregistry/serde/avro"
 )
 
 type KafkaService interface {
@@ -19,59 +18,75 @@ type service struct {
 	kafkaURL      string
 	kafkaUsername string
 	kafkaPassword string
+	schemaURL     string
 }
 
-func NewKafkaService(kafkaURL, kafkaUsername, kafkaPassword string) KafkaService {
+func NewKafkaService(kafkaURL, kafkaUsername, kafkaPassword, schemaURL string) KafkaService {
 	return &service{
 		kafkaURL:      kafkaURL,
 		kafkaUsername: kafkaUsername,
 		kafkaPassword: kafkaPassword,
+		schemaURL:     schemaURL,
 	}
 }
 
 func (s *service) Producer(ctx context.Context, topic string, message interface{}) error {
-	// Parse the Kafka URL
-	parsedURL, err := url.Parse(s.kafkaURL)
-	if err != nil {
-		return err
-	}
-
-	hostname := parsedURL.Hostname()
-	port := parsedURL.Port()
-	if port == "" {
-		port = "9092" // Default port if not specified
-	}
-
-	mechanism, err := scram.Mechanism(scram.SHA256, s.kafkaUsername, s.kafkaPassword)
-	if err != nil {
-		return err
-	}
-
-	writer := &kafka.Writer{
-		Addr:  kafka.TCP(hostname + ":" + port),
-		Topic: topic,
-		Transport: &kafka.Transport{
-			SASL: mechanism,
-			TLS:  &tls.Config{},
-		},
-	}
-	defer writer.Close()
-
-	messageBytes, err := json.Marshal(message)
-	if err != nil {
-		log.Printf("Error marshalling message: %v", err)
-		return err
-	}
-
-	err = writer.WriteMessages(ctx, kafka.Message{
-		Value: messageBytes,
+	// Create Kafka Producer
+	p, err := kafka.NewProducer(&kafka.ConfigMap{
+		"bootstrap.servers": s.kafkaURL,
+		"sasl.mechanism":    "SCRAM-SHA-256",
+		"security.protocol": "SASL_SSL",
+		"sasl.username":     s.kafkaUsername,
+		"sasl.password":     s.kafkaPassword,
 	})
-
 	if err != nil {
-		log.Printf("Error writing message: %v", err)
+		return err
+	}
+	defer p.Close()
+
+	// Create Schema Registry Client
+	client, err := schemaregistry.NewClient(schemaregistry.NewConfigWithAuthentication(
+		s.schemaURL,
+		s.kafkaUsername,
+		s.kafkaPassword))
+	if err != nil {
 		return err
 	}
 
-	log.Println("Message successfully written to Kafka topic", topic)
+	// Create Avro Serializer
+	ser, err := avro.NewGenericSerializer(client, serde.ValueSerde, avro.NewSerializerConfig())
+	if err != nil {
+		return err
+	}
+
+	// Serialize the payload
+	payload, err := ser.Serialize(topic, message)
+	if err != nil {
+		return err
+	}
+
+	// Produce the message
+	deliveryChan := make(chan kafka.Event)
+	defer close(deliveryChan)
+
+	err = p.Produce(&kafka.Message{
+		TopicPartition: kafka.TopicPartition{Topic: &topic, Partition: kafka.PartitionAny},
+		Key:            []byte("test"), // You might want to modify this key as needed
+		Value:          payload,
+	}, deliveryChan)
+
+	if err != nil {
+		return err
+	}
+
+	// Wait for delivery confirmation
+	ev := <-deliveryChan
+	m := ev.(*kafka.Message)
+	if m.TopicPartition.Error != nil {
+		return m.TopicPartition.Error
+	}
+
+	log.Printf("Message produced to topic %s [%d] at offset %d\n",
+		*m.TopicPartition.Topic, m.TopicPartition.Partition, m.TopicPartition.Offset)
 	return nil
 }

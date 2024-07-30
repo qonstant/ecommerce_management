@@ -69,6 +69,7 @@ func WithHTTPHandler() Configuration {
 			h.dependencies.Configs.KafkaPassword,
 			h.dependencies.Configs.KafkaUsername,
 			h.dependencies.Configs.KafkaURL,
+			h.dependencies.Configs.SchemaURL,
 		 )
 
 		// Init service handlers
