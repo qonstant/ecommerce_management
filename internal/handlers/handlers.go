@@ -64,13 +64,14 @@ func WithHTTPHandler() Configuration {
 		docs.SwaggerInfo.BasePath = h.dependencies.Configs.BaseURL
 		h.HTTP.Get("/swagger/*", httpSwagger.WrapHandler)
 
-		// Creating new kafka service
-		kafkaService := kafka.NewKafkaService(
-			h.dependencies.Configs.KafkaPassword,
-			h.dependencies.Configs.KafkaUsername,
-			h.dependencies.Configs.KafkaURL,
-			h.dependencies.Configs.SchemaURL,
-		)
+		// Creating new Kafka service with credentials struct
+		kafkaCredentials := kafka.Credentials{
+			KafkaURL:       h.dependencies.Configs.KafkaURL,
+			KafkaUsername:  h.dependencies.Configs.KafkaUsername,
+			KafkaPassword:  h.dependencies.Configs.KafkaPassword,
+			SchemaURL: h.dependencies.Configs.SchemaURL,
+		}
+		kafkaService := kafka.NewKafkaService(kafkaCredentials)
 
 		// Init service handlers
 		userHandler := http.NewUserHandler(h.dependencies.DB, kafkaService)

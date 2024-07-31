@@ -31,11 +31,6 @@ func Run() {
 		return
 	}
 
-	// Debug print to verify configuration values
-	fmt.Printf("Loaded configuration: %+v\n", configs)
-	fmt.Printf("EPAY Configuration: \n* URL: %s\n* Login: %s\n* Password: %s\n* OAuthURL: %s\n* PaymentPageURL: %s\n* TerminalID: %s\n",
-		configs.EPAYURL, configs.EPAYLogin, configs.EPAYPassword, configs.EPAYOAuthURL, configs.EPAYPaymentPageURL, configs.TerminalID)
-
 	database.InitDB()
 
 	// Initialize the ePay client
@@ -54,7 +49,12 @@ func Run() {
 	}
 
 	// Initialize the Kafka service
-	kafkaService := kafka.NewKafkaService(configs.KafkaURL, configs.KafkaUsername, configs.KafkaPassword, configs.SchemaURL)
+	kafkaService := kafka.NewKafkaService(kafka.Credentials{
+		KafkaURL:      configs.KafkaURL,
+		KafkaUsername: configs.KafkaUsername,
+		KafkaPassword: configs.KafkaPassword,
+		SchemaURL:     configs.SchemaURL,
+	})
 
 	handlers, err := handlers.New(
 		handlers.Dependencies{
