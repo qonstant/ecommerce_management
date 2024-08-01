@@ -2,7 +2,13 @@ package app
 
 import (
 	"context"
-	_ "ecommerce_management/docs"
+	"ecommerce_management/internal/config"
+	"ecommerce_management/internal/database"
+	"ecommerce_management/internal/handlers"
+	"ecommerce_management/internal/provider/epay"
+	"ecommerce_management/internal/service/kafka"
+	"ecommerce_management/pkg/log"
+	"ecommerce_management/pkg/server"
 	"flag"
 	"fmt"
 	"os"
@@ -11,14 +17,6 @@ import (
 	"time"
 
 	"go.uber.org/zap"
-
-	"ecommerce_management/internal/config"
-	"ecommerce_management/internal/database"
-	"ecommerce_management/internal/handlers"
-	"ecommerce_management/internal/provider/epay"
-	"ecommerce_management/internal/service/kafka"
-	"ecommerce_management/pkg/log"
-	"ecommerce_management/pkg/server"
 )
 
 // Run initializes the whole application
@@ -31,6 +29,7 @@ func Run() {
 		return
 	}
 
+	// Call InitDB multiple times to test the singleton pattern
 	database.InitDB()
 
 	// Initialize the ePay client
